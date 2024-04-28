@@ -142,6 +142,16 @@
       filter: blur(1px);
       opacity: 1.00;
     }
+    @keyframes hingeEffect {
+      0% { transform: rotate(0); }
+      20%, 60% { transform: rotate(80deg); transform-origin: top left; }
+      40%, 80% { transform: rotate(60deg); transform-origin: top left; }
+      100% { transform: translateY(700px); opacity: 0; }
+    }
+
+    .hinge {
+      animation: hingeEffect 2s ease-in-out forwards;
+    }
   </style>
 </head>
 <body>
@@ -161,6 +171,17 @@
   </div>
   <div class="flame-container">
     <div class="flame"></div>
+  </div>
+  <div id="taggingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 2000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 10px; color: #000;">
+      <h2>Tag MP3 File</h2>
+      <input type="file" id="mp3Upload" accept=".mp3">
+      <input type="file" id="coverUpload" accept="image/*">
+      <input type="text" id="titleInput" placeholder="Title">
+      <input type="text" id="artistInput" placeholder="Artist">
+      <input type="text" id="albumInput" placeholder="Album">
+      <button id="doneButton">Done</button>
+    </div>
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
   <script>
@@ -415,6 +436,73 @@ function toggleCoverShapeAndAnimation() {
 
 // Add click event listener to the cover
 document.getElementById('cover').addEventListener('click', toggleCoverShapeAndAnimation);
+    function addHingeEffect() {
+      document.body.classList.add('hinge');
+    }
+
+    // Trigger the hinge animation before the page unloads
+    window.onbeforeunload = function() {
+      addHingeEffect();
+      // Delay the reload to allow the animation to play
+      setTimeout(function() {
+        window.location.reload();
+      }, 2000); // Adjust the timeout to match the duration of your animation
+      return null; // This is needed to prevent a confirmation dialog
+    };
+
+// Function to show the tagging overlay
+function showTaggingOverlay() {
+  document.getElementById('taggingOverlay').style.display = 'block';
+}
+
+// Function to hide the tagging overlay
+function hideTaggingOverlay() {
+  document.getElementById('taggingOverlay').style.display = 'none';
+}
+
+// Event listener for the '5' key to show the overlay
+document.addEventListener('keydown', function(event) {
+  if (event.key === '1') {
+    showTaggingOverlay();
+  }
+});
+
+// Event listener for the 'Done' button
+document.getElementById('doneButton').addEventListener('click', function() {
+  const mp3File = document.getElementById('mp3Upload').files[0];
+  const coverFile = document.getElementById('coverUpload').files[0];
+  const title = document.getElementById('titleInput').value;
+  const artist = document.getElementById('artistInput').value;
+  const album = document.getElementById('albumInput').value;
+
+  // Read the cover image file and convert it to base64
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const coverData = event.target.result.split(',')[1]; // Remove the Data URL prefix
+
+    // Update ID3 tags using jsmediatags library
+    jsmediatags.write(mp3File, {
+      tags: {
+        title: title,
+        artist: artist,
+        album: album,
+        picture: {
+          data: coverData,
+          type: coverFile.type
+        }
+      },
+      onSuccess: function() {
+        console.log('Tags updated successfully!');
+      },
+      onError: function(error) {
+        console.error('Failed to update tags:', error);
+      }
+    });
+  };
+  reader.readAsDataURL(coverFile);
+
+  hideTaggingOverlay();
+});
   </script>
 </body>
 </html>
